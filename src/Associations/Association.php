@@ -131,12 +131,13 @@ class Association
     {
         $this->type = $association['type'];
 
-        $this->joinLeftTableColumn = $association['joinColumns'][0]['name'];
-        $this->joinRightTableColumn = $association['joinColumns'][0]['referencedColumnName'];
         if ($this->isManyToMany()) {
             $this->joinTable = $association['joinTable']['name'];
             $this->joinLeftTableColumn = $association['joinTable']['joinColumns'][0]['name'];
             $this->joinRightTableColumn = $association['joinTable']['inverseJoinColumns'][0]['name'];
+        } else {
+            $this->joinLeftTableColumn = $association['joinColumns'][0]['name'];
+            $this->joinRightTableColumn = $association['joinColumns'][0]['referencedColumnName'];
         }
 
         if ($isInverted) {

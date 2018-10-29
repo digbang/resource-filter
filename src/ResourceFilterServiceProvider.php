@@ -2,16 +2,13 @@
 
 namespace Digbang\ResourceFilter;
 
-use Illuminate\Container\Container;
 use Illuminate\Support\ServiceProvider;
 
 class ResourceFilterServiceProvider extends ServiceProvider
 {
     public function boot()
     {
-        $this->publishes([
-            $this->getConfigPath() => $this->getProjectConfigPath('resource-filter.php'),
-        ], 'config');
+        $this->publish();
     }
 
     public function register()
@@ -19,16 +16,14 @@ class ResourceFilterServiceProvider extends ServiceProvider
 
     }
 
-    /**
-     * @return string
-     */
-    protected function getConfigPath(): string
+    private function publish(): void
     {
-        return __DIR__ . '/../config/resource-filter.php';
-    }
+        $root = \realpath(\dirname(__DIR__));
 
-    private function getProjectConfigPath(string $path): string
-    {
-        return Container::getInstance()->make('path.config') . DIRECTORY_SEPARATOR . $path;
+        $this->publishes([
+                "$root/config/resource-filter.php" => config_path('resource-filter.php'),
+            ],
+            'config'
+        );
     }
 }

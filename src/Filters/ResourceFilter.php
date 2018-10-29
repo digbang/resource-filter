@@ -2,14 +2,14 @@
 
 namespace Digbang\ResourceFilter\Filters;
 
-use App\Doctrine\Util\AssociationExaminer;
 use Digbang\ResourceFilter\Associations\Association;
+use Digbang\ResourceFilter\Associations\AssociationExaminer;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Filter\SQLFilter;
 use Illuminate\Container\Container;
-use Pareto\Pago\Util\Resources\AggregatedResource;
-use Pareto\Pago\Util\Resources\AggregatorResource;
-use Pareto\Pago\Util\Resources\IndirectAggregatedResource;
+use Digbang\ResourceFilter\Resources\AggregatedResource;
+use Digbang\ResourceFilter\Resources\AggregatorResource;
+use Digbang\ResourceFilter\Resources\IndirectAggregatedResource;
 
 class ResourceFilter extends SQLFilter
 {
@@ -81,14 +81,13 @@ class ResourceFilter extends SQLFilter
             if (! $association->isManyToMany()) {
                 return "
                     SELECT 
-                        {$association->getJoinLeftTableColumn()} 
+                        {$association->getLeftTablePK()} 
                     FROM 
                         {$association->getLeftTable()}
                         INNER JOIN {$association->getRightTable()} ON 
                             {$association->getJoinRightTableColumn()} = {$association->getJoinLeftTableColumn()}
                     WHERE 
                         {$association->getRightTablePK()} = {$this->pk}
-                        AND {$association->getLeftTablePK()} IN ($this->userResources)
                 ";
             }
 

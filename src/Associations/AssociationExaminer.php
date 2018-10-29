@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Doctrine\Util;
+namespace Digbang\ResourceFilter\Associations;
 
-use Digbang\ResourceFilter\Associations\Association;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 

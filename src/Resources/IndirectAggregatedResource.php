@@ -1,6 +1,6 @@
 <?php
 
-namespace Pareto\Pago\Util\Resources;
+namespace Digbang\ResourceFilter\Resources;
 
 interface IndirectAggregatedResource extends AggregatedResource
 {
