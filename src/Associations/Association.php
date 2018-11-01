@@ -54,7 +54,7 @@ class Association
      */
     public function getLeftTablePK(): string
     {
-        return "$this->leftTablePK.$this->leftTablePK";
+        return "$this->leftTable.$this->leftTablePK";
     }
 
     /**

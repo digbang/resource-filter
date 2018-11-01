@@ -26,9 +26,14 @@ class ResourceFilterMiddleware
     public function handle(Request $request, \Closure $next)
     {
         /** @var ResourceManager $user */
-        $user = $request->getUser();
+        $user = $request->user();
 
-        if ($user instanceof ResourceManager) {
+        $userType = \get_class($user);
+        if ($user instanceof \Doctrine\ORM\Proxy\Proxy) {
+            $userType = \Doctrine\Common\Util\ClassUtils::getClass($user);
+        }
+
+        if ($this->shouldApplyFilter($user)) {
             /** @var EntityManager $entityManager */
             $entityManager = $this->registry->getManager();
             $entityManager->getConfiguration()->addFilter(ResourceFilter::FILTER_NAME, ResourceFilter::class);
@@ -38,7 +43,7 @@ class ResourceFilterMiddleware
 
             $filter->setParameter(ResourceFilter::FILTER_RESOURCE_AGGREGATOR, $this->config->get('resource-filter.resources.aggregator'), Type::STRING);
             $filter->setParameter(ResourceFilter::FILTER_USER_ID, $user->getId(), Type::INTEGER);
-            $filter->setParameter(ResourceFilter::FILTER_USER_TYPE, \get_class($user), Type::STRING);
+            $filter->setParameter(ResourceFilter::FILTER_USER_TYPE, $userType, Type::STRING);
         }
 
         return $next($request);
@@ -48,7 +53,7 @@ class ResourceFilterMiddleware
     {
         return
             $user instanceof ResourceManager &&
-            ! \in_array($user->getId(), $this->config->get('resource-filter.resources.aggregator'), true)
+            ! \in_array($user->getId(), $this->config->get('resource-filter.users.always-allow'))
         ;
     }
 }
