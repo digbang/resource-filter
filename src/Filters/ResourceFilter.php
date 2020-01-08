@@ -2,6 +2,7 @@
 
 namespace Digbang\ResourceFilter\Filters;
 
+use BadMethodCallException;
 use Digbang\ResourceFilter\Associations\Association;
 use Digbang\ResourceFilter\Associations\AssociationExaminer;
 use Doctrine\ORM\Mapping\ClassMetadata;
@@ -34,6 +35,14 @@ class ResourceFilter extends SQLFilter
 
     public function addFilterConstraint(ClassMetadata $targetEntityMetadata, $targetTableAlias)
     {
+        if (
+            ! $targetEntityMetadata->getReflectionClass()->implementsInterface(AggregatorResource::class) &&
+            ! $targetEntityMetadata->getReflectionClass()->implementsInterface(AggregatedResource::class) &&
+            ! $targetEntityMetadata->isInheritanceTypeJoined()
+        ) {
+            return '';
+        }
+
         //Constructor is "final". Cannot extend to inverse this dependencies.
         $this->initializeDependencies();
 
@@ -52,9 +61,14 @@ class ResourceFilter extends SQLFilter
         if ($targetEntityMetadata->getReflectionClass()->implementsInterface(AggregatedResource::class)) {
             return $this->buildAggregatedResourceFilter($targetEntityMetadata);
         }
-
+        /**
+         * WARNING!!
+         * This implementation is incomplete and possibly very very broken!;
+         * So, this is forced to return empty, so doctrine will not filter anything
+         */
         if ($targetEntityMetadata->isInheritanceTypeJoined()) {
-            return $this->buildAggregatedResourceChildFilter($targetEntityMetadata);
+            return '';
+            //return $this->buildAggregatedResourceChildFilter($targetEntityMetadata);
         }
 
         return '';
