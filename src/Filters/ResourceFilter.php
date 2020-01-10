@@ -2,9 +2,9 @@
 
 namespace Digbang\ResourceFilter\Filters;
 
-use BadMethodCallException;
 use Digbang\ResourceFilter\Associations\Association;
 use Digbang\ResourceFilter\Associations\AssociationExaminer;
+use Digbang\ResourceFilter\Resources\AccessListProvider;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Filter\SQLFilter;
 use Illuminate\Container\Container;
@@ -15,13 +15,13 @@ use Digbang\ResourceFilter\Resources\IndirectAggregatedResource;
 class ResourceFilter extends SQLFilter
 {
     public const FILTER_NAME = 'resource-filter';
-    public const FILTER_RESOURCE_AGGREGATOR = 'resource_aggregator';
     public const FILTER_USER_ID = 'user_id';
     public const FILTER_USER_TYPE = 'user_type';
 
     /** @var AssociationExaminer */
     private $associationExaminer;
-
+    /** @var AccessListProvider */
+    private $accessListProvider;
     /** @var string */
     private $resourceAggregator;
     /** @var string */
@@ -46,7 +46,6 @@ class ResourceFilter extends SQLFilter
         //Constructor is "final". Cannot extend to inverse this dependencies.
         $this->initializeDependencies();
 
-        $this->cleanResourceAggregator();
         $this->cleanUserId();
         $this->cleanUserType();
 
@@ -76,7 +75,16 @@ class ResourceFilter extends SQLFilter
 
     protected function initializeDependencies(): void
     {
-        $this->associationExaminer = Container::getInstance()->make(AssociationExaminer::class);
+        $container = Container::getInstance();
+        $config = $container->get('config');
+
+        $this->associationExaminer = $container->make(AssociationExaminer::class);
+        $this->resourceAggregator = $config->get('resource-filter.resources.aggregator');
+
+        $accessListProviderClass = $config->get('resource-filter.resources.access-list-provider');
+        if ($accessListProviderClass) {
+            $this->accessListProvider = $container->make($accessListProviderClass);
+        }
     }
 
     protected function buildUserResourcesFilter(): string
@@ -90,28 +98,32 @@ class ResourceFilter extends SQLFilter
 
     protected function buildUserResourcesQuery(): string
     {
+        if ($this->accessListProvider) {
+            return $this->accessListProvider->buildAccessList()->getQuery()->getSQL();
+        }
+
         $association = $this->associationExaminer->associationResolver($this->resourceAggregator, $this->userType);
         if ($association) {
             if (! $association->isManyToMany()) {
                 return "
-                    SELECT 
-                        {$association->getLeftTablePK()} 
-                    FROM 
+                    SELECT
+                        {$association->getLeftTablePK()}
+                    FROM
                         {$association->getLeftTable()}
-                        INNER JOIN {$association->getRightTable()} ON 
+                        INNER JOIN {$association->getRightTable()} ON
                             {$association->getJoinRightTableColumn()} = {$association->getJoinLeftTableColumn()}
-                    WHERE 
+                    WHERE
                         {$association->getRightTablePK()} = {$this->pk}
                 ";
             }
 
             if ($association->isManyToMany()) {
                 return "
-                    SELECT 
-                        {$association->getJoinLeftTableColumn()} 
-                    FROM 
-                        {$association->getJoinTable()} 
-                    WHERE 
+                    SELECT
+                        {$association->getJoinLeftTableColumn()}
+                    FROM
+                        {$association->getJoinTable()}
+                    WHERE
                         {$association->getJoinRightTableColumn()} = {$this->userId}
                 ";
             }
@@ -186,11 +198,6 @@ class ResourceFilter extends SQLFilter
                 AND {$right->getRightTablePK()} IN ($this->userResources))";
 
         return $query;
-    }
-
-    private function cleanResourceAggregator(): void
-    {
-        $this->resourceAggregator = str_replace("'", '', $this->getParameter(static::FILTER_RESOURCE_AGGREGATOR));
     }
 
     private function cleanUserId(): void

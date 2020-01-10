@@ -41,7 +41,6 @@ class ResourceFilterMiddleware
             /** @var ResourceFilter $filter */
             $filter = $entityManager->getFilters()->enable(ResourceFilter::FILTER_NAME);
 
-            $filter->setParameter(ResourceFilter::FILTER_RESOURCE_AGGREGATOR, $this->config->get('resource-filter.resources.aggregator'), Type::STRING);
             $filter->setParameter(ResourceFilter::FILTER_USER_ID, $user->getId(), Type::INTEGER);
             $filter->setParameter(ResourceFilter::FILTER_USER_TYPE, $userType, Type::STRING);
         }
