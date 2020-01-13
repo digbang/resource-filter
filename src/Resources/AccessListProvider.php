@@ -6,5 +6,5 @@ use Doctrine\ORM\QueryBuilder;
 
 interface AccessListProvider
 {
-    public function buildAccessList(): QueryBuilder;
+    public function buildAccessList($userId): QueryBuilder;
 }
