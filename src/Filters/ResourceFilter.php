@@ -99,7 +99,7 @@ class ResourceFilter extends SQLFilter
     protected function buildUserResourcesQuery(): string
     {
         if ($this->accessListProvider) {
-            return $this->accessListProvider->buildAccessList()->getQuery()->getSQL();
+            return $this->accessListProvider->buildAccessList($this->userId)->getQuery()->getSQL();
         }
 
         $association = $this->associationExaminer->associationResolver($this->resourceAggregator, $this->userType);
