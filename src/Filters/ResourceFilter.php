@@ -2,6 +2,7 @@
 
 namespace Digbang\ResourceFilter\Filters;
 
+use BadMethodCallException;
 use Digbang\ResourceFilter\Associations\Association;
 use Digbang\ResourceFilter\Associations\AssociationExaminer;
 use Digbang\ResourceFilter\Resources\AccessListProvider;
@@ -44,7 +45,7 @@ class ResourceFilter extends SQLFilter
         }
 
         //Constructor is "final". Cannot extend to inverse this dependencies.
-        $this->initializeDependencies();
+        $this->initializeDependencies($targetEntityMetadata);
 
         $this->cleanUserId();
         $this->cleanUserType();
@@ -73,15 +74,24 @@ class ResourceFilter extends SQLFilter
         return '';
     }
 
-    protected function initializeDependencies(): void
+    protected function initializeDependencies(ClassMetadata $targetEntityMetadata): void
     {
         $container = Container::getInstance();
         $config = $container->get('config');
 
         $this->associationExaminer = $container->make(AssociationExaminer::class);
-        $this->resourceAggregator = $config->get('resource-filter.resources.aggregator');
 
-        $accessListProviderClass = $config->get('resource-filter.resources.access-list-provider');
+        if ($targetEntityMetadata->getReflectionClass()->implementsInterface(AggregatorResource::class)) {
+            $this->resourceAggregator = $targetEntityMetadata->getReflectionClass()->getName();
+        } elseif ($targetEntityMetadata->getReflectionClass()->implementsInterface(AggregatedResource::class)) {
+            /** @var AggregatedResource $aggregated */
+            $aggregated = $targetEntityMetadata->getReflectionClass()->getName();
+            $this->resourceAggregator = $aggregated::aggregator();
+        } else {
+            throw new BadMethodCallException('Unimplemented for "InheritanceTypeJoined"');
+        }
+
+        $accessListProviderClass = $config->get("resource-filter.resources.{$this->resourceAggregator}.access-list-provider");
         if ($accessListProviderClass) {
             $this->accessListProvider = $container->make($accessListProviderClass);
         }
