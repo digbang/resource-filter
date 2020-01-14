@@ -5,6 +5,7 @@ namespace Digbang\ResourceFilter\Filters;
 use BadMethodCallException;
 use Digbang\ResourceFilter\Associations\Association;
 use Digbang\ResourceFilter\Associations\AssociationExaminer;
+use Digbang\ResourceFilter\Associations\AssociationException;
 use Digbang\ResourceFilter\Resources\AccessListProvider;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Filter\SQLFilter;
@@ -285,7 +286,12 @@ class ResourceFilter extends SQLFilter
         $associations = [];
         $length = \count($associationPath);
         for ($i = 1; $i < $length; ++$i) {
-            $associations[] = $this->associationExaminer->associationResolver($associationPath[$i - 1], $associationPath[$i]);
+            $association = $this->associationExaminer->associationResolver($associationPath[$i - 1], $associationPath[$i]);
+            if ($association === null) {
+                throw new AssociationException("There is no valid association between '{$associationPath[$i - 1]}' and '{$associationPath[$i]}'");
+            }
+
+            $associations[] = $association;
         }
 
         return $associations;
