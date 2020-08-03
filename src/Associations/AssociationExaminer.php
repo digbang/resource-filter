@@ -20,14 +20,18 @@ class AssociationExaminer
         return array_first($targetEntityMetadata->getIdentifierColumnNames());
     }
 
-    public function associationResolver(string $leftSide, string $rightSide): ?Association
+    /**
+     * @return array|Association[]
+     */
+    public function associationResolver(string $leftSide, string $rightSide): array
     {
         $leftSideMetadata = $this->getClassMetadata($leftSide);
         $rightSideMetadata = $this->getClassMetadata($rightSide);
-        $association = array_first($leftSideMetadata->getAssociationsByTargetClass($rightSide));
 
-        if (! $association) {
-            return null;
+        $associations = $leftSideMetadata->getAssociationsByTargetClass($rightSide);
+
+        if (! $associations) {
+            return [];
         }
 
         $leftTable = $leftSideMetadata->getTableName();
@@ -35,13 +39,18 @@ class AssociationExaminer
         $rightTable = $rightSideMetadata->getTableName();
         $rightTableColumn = $this->getEntityPrimaryKey($rightSideMetadata);
 
-        $isInverted = false;
-        if (! $association['isOwningSide']) {
-            $association = array_first($rightSideMetadata->getAssociationsByTargetClass($leftSide));
-            $isInverted = true;
+        $compiled = [];
+        foreach ($associations as $association) {
+            $isInverted = false;
+            if (! $association['isOwningSide']) {
+                $association = array_first($rightSideMetadata->getAssociationsByTargetClass($leftSide));
+                $isInverted = true;
+            }
+
+            $compiled[] = new Association($association['fieldName'], $leftTable, $leftTableColumn, $rightTable, $rightTableColumn, $association, $isInverted);
         }
 
-        return new Association($leftTable, $leftTableColumn, $rightTable, $rightTableColumn, $association, $isInverted);
+        return $compiled;
     }
 
     public function getClassMetadata(string $targetEntity): ClassMetadata

@@ -9,6 +9,8 @@ class Association
     /** @var int */
     private $type;
     /** @var string */
+    private $associationName;
+    /** @var string */
     private $leftTable;
     /** @var string */
     private $leftTablePK;
@@ -23,8 +25,9 @@ class Association
     /** @var string */
     private $joinRightTableColumn;
 
-    public function __construct(string $leftTable, string $leftTablePK, string $rightTable, string $rightTablePK, array $association, bool $isInverted = false)
+    public function __construct(string $associationName, string $leftTable, string $leftTablePK, string $rightTable, string $rightTablePK, array $association, bool $isInverted = false)
     {
+        $this->associationName = $associationName;
         $this->leftTable = $leftTable;
         $this->leftTablePK = $leftTablePK;
         $this->rightTable = $rightTable;
@@ -33,57 +36,41 @@ class Association
         $this->deconstructAssociation($association, $isInverted);
     }
 
-    /**
-     * @return int
-     */
     public function getType(): int
     {
         return $this->type;
     }
 
-    /**
-     * @return string
-     */
+    public function getAssociationName(): string
+    {
+        return $this->associationName;
+    }
+
     public function getLeftTable(): string
     {
         return $this->leftTable;
     }
 
-    /**
-     * @return string
-     */
     public function getLeftTablePK(): string
     {
         return "$this->leftTable.$this->leftTablePK";
     }
 
-    /**
-     * @return string
-     */
     public function getRightTable(): string
     {
         return $this->rightTable;
     }
 
-    /**
-     * @return string
-     */
     public function getRightTablePK(): string
     {
         return "$this->rightTable.$this->rightTablePK";
     }
 
-    /**
-     * @return string
-     */
     public function getJoinTable(): ?string
     {
         return $this->joinTable;
     }
 
-    /**
-     * @return string
-     */
     public function getJoinLeftTableColumn(): string
     {
         $table = $this->isManyToMany() ? $this->joinTable : $this->leftTable;
@@ -91,9 +78,6 @@ class Association
         return "$table.$this->joinLeftTableColumn";
     }
 
-    /**
-     * @return string
-     */
     public function getJoinRightTableColumn(): string
     {
         $table = $this->isManyToMany() ? $this->joinTable : $this->rightTable;
@@ -103,13 +87,12 @@ class Association
 
     /**
      * @param int|array $type
-     * @return bool
      */
     public function is($type): bool
     {
         $type = (array) $type;
 
-        return \in_array($this->type, $type, true);
+        return in_array($this->type, $type, true);
     }
 
     public function isManyToMany(): bool

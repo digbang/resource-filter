@@ -13,6 +13,7 @@ use Illuminate\Container\Container;
 use Digbang\ResourceFilter\Resources\AggregatedResource;
 use Digbang\ResourceFilter\Resources\AggregatorResource;
 use Digbang\ResourceFilter\Resources\IndirectAggregatedResource;
+use InvalidArgumentException;
 
 class ResourceFilter extends SQLFilter
 {
@@ -20,6 +21,8 @@ class ResourceFilter extends SQLFilter
     public const FILTER_USER_ID = 'user_id';
     public const FILTER_USER_TYPE = 'user_type';
 
+    /** @var string */
+    private $targetTableAlias;
     /** @var AssociationExaminer */
     private $associationExaminer;
     /** @var AccessListProvider */
@@ -45,13 +48,12 @@ class ResourceFilter extends SQLFilter
             return '';
         }
 
+        $this->targetTableAlias = $targetTableAlias;
+
         //Constructor is "final". Cannot extend to inverse this dependencies.
         $this->initializeDependencies($targetEntityMetadata);
 
-        $this->cleanUserId();
-        $this->cleanUserType();
-
-        $this->pk = $this->buildPK($targetEntityMetadata, $targetTableAlias);
+        $this->pk = $this->buildPK($targetEntityMetadata);
 
         $this->userResources = $this->buildUserResourcesQuery();
 
@@ -62,6 +64,7 @@ class ResourceFilter extends SQLFilter
         if ($targetEntityMetadata->getReflectionClass()->implementsInterface(AggregatedResource::class)) {
             return $this->buildAggregatedResourceFilter($targetEntityMetadata);
         }
+
         /**
          * WARNING!!
          * This implementation is incomplete and possibly very very broken!;
@@ -77,6 +80,9 @@ class ResourceFilter extends SQLFilter
 
     protected function initializeDependencies(ClassMetadata $targetEntityMetadata): void
     {
+        $this->cleanUserId();
+        $this->cleanUserType();
+
         $container = Container::getInstance();
         $config = $container->get('config');
 
@@ -113,8 +119,10 @@ class ResourceFilter extends SQLFilter
             return $this->accessListProvider->buildAccessList($this->resourceAggregator, $this->userId)->getQuery()->getSQL();
         }
 
-        $association = $this->associationExaminer->associationResolver($this->resourceAggregator, $this->userType);
-        if ($association) {
+        $associations = $this->associationExaminer->associationResolver($this->resourceAggregator, $this->userType);
+        if ($associations) {
+            $association = $this->determineAssociation($associations);
+
             if (! $association->isManyToMany()) {
                 return "
                     SELECT
@@ -145,9 +153,11 @@ class ResourceFilter extends SQLFilter
 
     protected function buildDirectAssociationQuery(string $targetEntity, string $toEntity): string
     {
-        $association = $this->associationExaminer->associationResolver($toEntity, $targetEntity);
+        $associations = $this->associationExaminer->associationResolver($toEntity, $targetEntity);
 
-        if ($association) {
+        if ($associations) {
+            $association = $this->determineAssociation($associations);
+
             // Dividing the relation type when making each query makes ugly code, but a better performing query.
             if (! $association->isManyToMany()) {
                 return "EXISTS (
@@ -221,11 +231,11 @@ class ResourceFilter extends SQLFilter
         $this->userType = str_replace("'", '', $this->getParameter(static::FILTER_USER_TYPE));
     }
 
-    private function buildPK(ClassMetadata $targetEntityMetadata, string $targetTableAlias): string
+    private function buildPK(ClassMetadata $targetEntityMetadata): string
     {
         $pk = $this->associationExaminer->getEntityPrimaryKey($targetEntityMetadata);
 
-        return "$targetTableAlias.$pk";
+        return "{$this->targetTableAlias}.$pk";
     }
 
     private function buildAggregatedResourceFilter(ClassMetadata $targetEntityMetadata): string
@@ -283,17 +293,27 @@ class ResourceFilter extends SQLFilter
             (array) $to
         );
 
-        $associations = [];
-        $length = \count($associationPath);
+        $indirectAssociations = [];
+        $length = count($associationPath);
         for ($i = 1; $i < $length; ++$i) {
-            $association = $this->associationExaminer->associationResolver($associationPath[$i - 1], $associationPath[$i]);
-            if ($association === null) {
+            $associations = $this->associationExaminer->associationResolver($associationPath[$i - 1], $associationPath[$i]);
+            if (! $associations) {
                 throw new AssociationException("There is no valid association between '{$associationPath[$i - 1]}' and '{$associationPath[$i]}'");
             }
 
-            $associations[] = $association;
+            $association = $this->determineAssociation($associations);
+
+            $indirectAssociations[] = $association;
         }
 
-        return $associations;
+        return $indirectAssociations;
+    }
+
+    /**
+     * @param Association[] $associations
+     */
+    private function determineAssociation(array $associations): Association
+    {
+        return $associations[0];
     }
 }
