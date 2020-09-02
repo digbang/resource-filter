@@ -1,6 +1,6 @@
 <?php
 
-namespace Digbang\ResourceFilter\Middleware;
+namespace Digbang\ResourceFilter\Middlewares;
 
 use Digbang\ResourceFilter\Filters\ResourceFilter;
 use Digbang\ResourceFilter\Resources\ResourceManager;
