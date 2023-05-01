@@ -1,4 +1,4 @@
-FROM digbang/php-dev:7.2
+FROM digbang/php-dev:8.2-apache
 
 RUN apt-get update && apt-get install -y libxml2-dev libicu-dev locales locales-all
 RUN docker-php-ext-configure intl
