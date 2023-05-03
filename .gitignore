@@ -2,3 +2,5 @@
 composer.lock
 .idea
 .php_cs.cache
+cghooks.lock
+
