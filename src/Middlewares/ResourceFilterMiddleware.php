@@ -4,9 +4,9 @@ namespace Digbang\ResourceFilter\Middlewares;
 
 use Digbang\ResourceFilter\Filters\ResourceFilter;
 use Digbang\ResourceFilter\Resources\ResourceManager;
-use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManager;
+use Doctrine\Persistence\ManagerRegistry;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Http\Request;
 
